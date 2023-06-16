@@ -8,7 +8,7 @@ $(BIN_DIR)/bmatch-solver:
 	$(MAKE) -C bmatch-solver
 
 $(BIN_DIR)/abc:
-	$(MAKE) -C abc -j$((($(nproc)+1)/2))
+	$(MAKE) -C abc -j$((($(nproc)+1)/2)) ABC_USE_NO_PTHREADS=1 ABC_USE_NO_READLINE=1
 	cp abc/abc $(BIN_DIR)/abc
 
 $(BIN_DIR)/parser:
