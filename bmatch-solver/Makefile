@@ -30,7 +30,7 @@ CASE_DIR_PREFIX = ./CAD_testdata/case
 
 test_%: $(BIN_DIR)/bmatch-solver
 	$(BIN_DIR)/bmatch-solver $(CASE_DIR_PREFIX)$*/name $(CASE_DIR_PREFIX)$*/circuit_1.aag $(CASE_DIR_PREFIX)$*/circuit_2.aag \
-	$(CASE_DIR_PREFIX)$*/input $(CASE_DIR_PREFIX)$*/out
+	$(CASE_DIR_PREFIX)$*/input $(CASE_DIR_PREFIX)$*/match
 
 clean:
 	rm -f *.o $(BIN_DIR)/bmatch-solver
