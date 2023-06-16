@@ -21,7 +21,6 @@ public:
   virtual void addSumConstraint(const std::vector<Lit> &lits, int,
                                 Lit implyFrom = lit_Undef) = 0;
 
-  // not necessary for cadical
   virtual void assumeRelease() = 0;
   virtual void assumeProperty(Var prop, bool val) = 0;
   virtual void setAssumptions(const std::vector<Lit> &lits) = 0;
@@ -32,31 +31,5 @@ public:
   virtual int getValue(Var v) = 0;
   virtual void printStats() const = 0;
 };
-
-std::vector<std::vector<Lit>> HA3(Lit x, Lit y, Lit z, Lit carry, Lit sum) {
-  std::vector<std::vector<Lit>> clauses;
-  clauses.push_back({z, ~carry, ~sum});
-  clauses.push_back({x, y, ~carry});
-  clauses.push_back({~z, carry, sum});
-  clauses.push_back({~x, ~y, carry});
-  clauses.push_back({x, y, z, ~sum});
-  clauses.push_back({x, ~y, ~z, ~sum});
-  clauses.push_back({~x, y, ~z, ~sum});
-  clauses.push_back({~x, ~y, ~z, sum});
-  clauses.push_back({~x, y, z, sum});
-  clauses.push_back({x, ~y, z, sum});
-  return clauses;
-}
-
-std::vector<std::vector<Lit>> HA2(Lit x, Lit y, Lit carry, Lit sum) {
-  std::vector<std::vector<Lit>> clauses;
-  clauses.push_back({x, y, ~sum});
-  clauses.push_back({~x, ~y, ~sum});
-  clauses.push_back({x, ~carry});
-  clauses.push_back({y, ~carry});
-  clauses.push_back({~x, carry, sum});
-  clauses.push_back({x, ~y, sum});
-  return clauses;
-}
 
 #endif // BASE_SOLVER_H

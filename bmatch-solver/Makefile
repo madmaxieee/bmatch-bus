@@ -11,13 +11,11 @@ $(shell mkdir -p $(BIN_DIR))
 
 all: $(BIN_DIR)/bmatch-solver
 
-$(BIN_DIR)/bmatch-solver: src/File.o src/Proof.o src/Solver.o src/main.o $(LIBCADICAL) src/BaseSolver.h src/CadicalSolver.h
-	g++ -o $@ $(CC_FLAGS) $(OPT_FLAGS) src/File.o src/Proof.o src/Solver.o src/main.o $(LIBCADICAL) -o $(BIN_DIR)/bmatch-solver
+$(BIN_DIR)/bmatch-solver: src/File.o src/Proof.o src/Solver.o src/main.o src/CadicalSolver.o src/MinisatSolver.o $(LIBCADICAL)
+	g++ $(CC_FLAGS) $(OPT_FLAGS) $^ -o $@
 
 src/%.o: src/%.cpp
 	g++ -c $(CC_FLAGS) $(OPT_FLAGS) $< -o $@
-
-src/%.h:
 
 $(LIBCADICAL): $(CADICAL_DIR)/configure $(CADICAL_DIR)/makefile
 	cd $(CADICAL_DIR) && ./configure && $(MAKE) -j$((($(nproc)+1)/2))

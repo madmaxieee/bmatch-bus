@@ -15,7 +15,7 @@ dir="${input/\/input//}"
 read -r line < "$input"
 circuit_1=$line
 while read -r line; do
-    if [[ "${line:(-2):2}" == ".v" ]]; then
+    if [[ "$line" == *".v" ]]; then
         circuit_2=$line
     fi
 done < "$input"

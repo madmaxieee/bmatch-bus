@@ -1,5 +1,5 @@
 #include "CadicalSolver.h"
-#include "sat.h"
+#include "MinisatSolver.h"
 #include <fstream>
 #include <iomanip>
 #include <iostream>

@@ -6,9 +6,16 @@
     "*.conf": "plaintext",
     ".env.example": "dotenv",
     "*.txt": "plaintext",
-    "vector": "cpp"
+    "vector": "cpp",
+    "cassert": "cpp",
+    "iostream": "cpp",
+    "queue": "cpp",
+    "fstream": "cpp"
   },
   "cSpell.words": [
-    "bmatch"
+    "bmatch",
+    "Cadical",
+    "Dimacs",
+    "Minisat"
   ]
 }
