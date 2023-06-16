@@ -17,5 +17,6 @@
     "Cadical",
     "Dimacs",
     "Minisat"
-  ]
+  ],
+  "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools"
 }

@@ -308,33 +308,6 @@ void buildMatrix(BaseSolver &solver) {
   for (int i = 0; i < fStar.size(); ++i) {
     vector<Lit> lits;
     for (int j = 0; j < f.size(); ++j) {
-      /*
-      lits.clear();
-      lits.push_back(~Lit(c[i][j].matrixVar));
-      lits.push_back(~Lit(d[i][j].matrixVar));
-      solver.addCNF(lits);
-      for (int k = j + 1; k < f.size(); ++k) {
-        lits.clear();
-        lits.push_back(~Lit(c[i][j].matrixVar));
-        lits.push_back(~Lit(c[i][k].matrixVar));
-        solver.addCNF(lits);
-
-        lits.clear();
-        lits.push_back(~Lit(c[i][j].matrixVar));
-        lits.push_back(~Lit(d[i][k].matrixVar));
-        solver.addCNF(lits);
-
-        lits.clear();
-        lits.push_back(~Lit(d[i][j].matrixVar));
-        lits.push_back(~Lit(c[i][k].matrixVar));
-        solver.addCNF(lits);
-
-        lits.clear();
-        lits.push_back(~Lit(d[i][j].matrixVar));
-        lits.push_back(~Lit(d[i][k].matrixVar));
-        solver.addCNF(lits);
-      }
-      */
       lits.push_back(~Lit(c[i][j].matrixVar));
       lits.push_back(~Lit(d[i][j].matrixVar));
     }
@@ -634,8 +607,8 @@ unordered_set<Var> findRedundantInputs(BaseSolver &solver) {
 }
 
 void solve() {
-  // setScoreLowerBound(pureMatrixSolver, (f.size() + g.size()) / 2);
-  // setScoreLowerBound(busMatrixSolver, (f.size() + g.size()) / 2);
+  setScoreLowerBound(pureMatrixSolver, (f.size() + g.size()) / 2);
+  setScoreLowerBound(busMatrixSolver, (f.size() + g.size()) / 2);
 
   bestScore = 0;
   int iterations = -1;
