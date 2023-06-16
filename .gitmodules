@@ -1,0 +1,9 @@
+[submodule "abc"]
+	path = abc
+	url = https://github.com/berkeley-abc/abc.git
+[submodule "aiger"]
+	path = aiger
+	url = https://github.com/zimmski/aiger.git
+[submodule "bmatch-solver/cadical"]
+	path = bmatch-solver/cadical
+	url = https://github.com/arminbiere/cadical.git
