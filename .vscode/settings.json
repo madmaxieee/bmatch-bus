@@ -1,0 +1,14 @@
+{
+  "C_Cpp.default.compilerPath": "/usr/bin/g++",
+  "files.associations": {
+    ".env.defaults": "dotenv",
+    ".env": "dotenv",
+    "*.conf": "plaintext",
+    ".env.example": "dotenv",
+    "*.txt": "plaintext",
+    "vector": "cpp"
+  },
+  "cSpell.words": [
+    "bmatch"
+  ]
+}

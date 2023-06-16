@@ -1,0 +1,63 @@
+#! /usr/bin/env bash
+
+#usage: ./bmatch CAD_testdata/case01/input CAD_testdata/case01/match
+
+if [ $# -ne 2 ]; then
+    echo "usage: ./bmatch <input> <match>"
+    exit 1
+fi
+
+#IO handling
+input=$1
+match=$2
+dir="${input/\/input//}"
+
+read -r line < "$input"
+circuit_1=$line
+while read -r line; do
+    if [[ "${line:(-2):2}" == ".v" ]]; then
+        circuit_2=$line
+    fi
+done < "$input"
+circuit_1=$dir$circuit_1
+circuit_2=$dir$circuit_2
+
+#delete old file
+rm -rf "$dir"*.aig "$dir"*.aag "$dir"name "$dir".dofile
+
+#write dofile
+{
+    echo "read_verilog ${dir}1.v"
+    echo "strash; rewrite; refactor"
+    echo "strash; rewrite; refactor"
+    echo "strash; rewrite; refactor"
+    echo "write_aiger -s ${dir}1.aig"
+    echo "write_aiger ${dir}circuit_1.aig"
+    echo "read_verilog ${dir}2.v"
+    echo "strash; rewrite; refactor"
+    echo "strash; rewrite; refactor"
+    echo "strash; rewrite; refactor"
+    echo "write_aiger -s ${dir}2.aig"
+    echo "write_aiger ${dir}circuit_2.aig"
+} >> "$dir".dofile
+
+#create aag name file
+./bin/parser "$circuit_1" "$dir"1.v
+./bin/parser "$circuit_2" "$dir"2.v
+./bin/abc -f "$dir".dofile > /dev/null
+rm -rf "$dir"1.v
+rm -rf "$dir"2.v
+
+./bin/aigtoaig "$dir"1.aig "$dir"1.aag
+./bin/aigtoaig "$dir"2.aig "$dir"2.aag
+./bin/aigtoaig "$dir"circuit_1.aig "$dir"circuit_1.aag 
+./bin/aigtoaig "$dir"circuit_2.aig "$dir"circuit_2.aag
+./bin/aig_map "$dir"1.aag "$dir"2.aag "$dir"name
+rm -rf "$dir".dofile
+rm -rf "$dir"*.aig
+rm -rf "$dir"1.aag
+rm -rf "$dir"2.aag
+
+#execution
+./bin/bmatch-solver "$dir"name "$dir"circuit_1.aag "$dir"circuit_2.aag "$input" "$match"
+rm -rf "$dir"*.aig "$dir"*.aag "$dir"name "$dir".dofile
