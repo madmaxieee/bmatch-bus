@@ -5,6 +5,7 @@ This repository contains the source code for the [2023 ICCAD CAD contest](http:/
 ## How to run
 
 ```sh
+$ git submodule update --init --recursive
 $ make
 $ ./bmatch <input_file> <output_file>
 ```
