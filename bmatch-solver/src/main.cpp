@@ -202,7 +202,6 @@ void outputAns(ostream &out) {
 }
 
 int getScore(BaseSolver &solver) {
-  // TODO: calculate current score from c, d and compare it with bestScore
   int score = 0;
   for (int j = 0; j < f.size(); ++j) {
     for (int i = 0; i < fStar.size(); ++i) {
@@ -225,7 +224,6 @@ void genCircuitModel(ifstream &portMapping, ifstream &aag1, ifstream &aig2) {
   y.clear();
   g.clear();
   fStar.clear();
-  // TODO: build circuit 1/2 constrains to miter, and add IO port name, Var to
   // x/y, f/g
 
   readPortMapping(portMapping);
@@ -238,7 +236,6 @@ void genCircuitModel(ifstream &portMapping, ifstream &aag1, ifstream &aig2) {
 }
 
 void buildMatrix(BaseSolver &solver) {
-  // TODO: add matrix constraints based on x, f, y, g
   a.clear();
   a.reserve(y.size());
   b.clear();
@@ -787,7 +784,7 @@ void solve() {
         tempY.push_back(miterSolver.getValue(y[i].getVar()));
       }
 
-      unordered_set dontCare = findRedundantInputs(miterSolver);
+      // unordered_set dontCare = findRedundantInputs(miterSolver);
 
       vector<Lit> lits;
       for (int i = 0; i < fStar.size(); ++i) {
@@ -798,15 +795,15 @@ void solve() {
             lits.push_back(~Lit(d[i][j].matrixVar));
           }
           for (int k = 0; k < y.size(); ++k) {
-            if (dontCare.find(y[k].getVar()) != dontCare.end()) {
-              continue;
-            }
+            // if (dontCare.find(y[k].getVar()) != dontCare.end()) {
+            //   continue;
+            // }
 
             for (int l = 0; l < x.size(); ++l) { // +1 or not
 
-              if (dontCare.find(x[l].getVar()) != dontCare.end()) {
-                continue;
-              }
+              // if (dontCare.find(x[l].getVar()) != dontCare.end()) {
+              //   continue;
+              // }
 
               if (tempX[l] != tempY[k]) {
                 lits.push_back(Lit(a[k][l].matrixVar));
