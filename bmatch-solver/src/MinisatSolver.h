@@ -73,9 +73,9 @@ private:
   Var _curVar;      // Variable currently
   vec<Lit> _assump; // Assumption List for assumption solve
 
-  std::vector<std::vector<Lit>> HA3(Lit x, Lit y, Lit z, Lit carry, Lit sum);
+  std::vector<std::vector<Lit>> FA(Lit x, Lit y, Lit z, Lit carry, Lit sum);
 
-  std::vector<std::vector<Lit>> HA2(Lit x, Lit y, Lit carry, Lit sum);
+  std::vector<std::vector<Lit>> HA(Lit x, Lit y, Lit carry, Lit sum);
 };
 
 #endif // SAT_H

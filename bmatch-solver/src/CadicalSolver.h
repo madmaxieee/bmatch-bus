@@ -64,9 +64,9 @@ private:
   std::vector<Lit> _assump;
   std::vector<int> _solution;
 
-  std::vector<std::vector<Lit>> HA3(Lit x, Lit y, Lit z, Lit carry, Lit sum);
+  std::vector<std::vector<Lit>> FA(Lit x, Lit y, Lit z, Lit carry, Lit sum);
 
-  std::vector<std::vector<Lit>> HA2(Lit x, Lit y, Lit carry, Lit sum);
+  std::vector<std::vector<Lit>> HA(Lit x, Lit y, Lit carry, Lit sum);
 
   void add(Lit l);
   void endClause();

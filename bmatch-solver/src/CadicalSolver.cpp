@@ -314,7 +314,7 @@ void CadicalSolver::addSumConstraint(const std::vector<Lit> &lits, int sum,
       buckets[i].pop();
       Lit carry = Lit(newVar());
       Lit sum = Lit(newVar());
-      std::vector<std::vector<Lit>> clauses = HA3(x, y, z, carry, sum);
+      std::vector<std::vector<Lit>> clauses = FA(x, y, z, carry, sum);
       for (auto clause : clauses) {
         if (implyFrom != lit_Undef) {
           clause.push_back(~implyFrom);
@@ -336,7 +336,7 @@ void CadicalSolver::addSumConstraint(const std::vector<Lit> &lits, int sum,
       buckets[i].pop();
       Lit carry = Lit(newVar());
       Lit sum = Lit(newVar());
-      std::vector<std::vector<Lit>> clauses = HA2(x, y, carry, sum);
+      std::vector<std::vector<Lit>> clauses = HA(x, y, carry, sum);
       for (auto clause : clauses) {
         if (implyFrom != lit_Undef) {
           clause.push_back(~implyFrom);
@@ -405,8 +405,8 @@ void CadicalSolver::printStats() const { _solver->statistics(); }
 
 int CadicalSolver::_getValue(Var v) const { return _solver->val(v) == v; }
 
-std::vector<std::vector<Lit>> CadicalSolver::HA3(Lit x, Lit y, Lit z, Lit carry,
-                                                 Lit sum) {
+std::vector<std::vector<Lit>> CadicalSolver::FA(Lit x, Lit y, Lit z, Lit carry,
+                                                Lit sum) {
   std::vector<std::vector<Lit>> clauses;
   clauses.push_back({z, ~carry, ~sum});
   clauses.push_back({x, y, ~carry});
@@ -421,8 +421,8 @@ std::vector<std::vector<Lit>> CadicalSolver::HA3(Lit x, Lit y, Lit z, Lit carry,
   return clauses;
 }
 
-std::vector<std::vector<Lit>> CadicalSolver::HA2(Lit x, Lit y, Lit carry,
-                                                 Lit sum) {
+std::vector<std::vector<Lit>> CadicalSolver::HA(Lit x, Lit y, Lit carry,
+                                                Lit sum) {
   std::vector<std::vector<Lit>> clauses;
   clauses.push_back({x, y, ~sum});
   clauses.push_back({~x, ~y, ~sum});
