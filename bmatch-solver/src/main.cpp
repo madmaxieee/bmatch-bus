@@ -304,13 +304,30 @@ void buildMatrix(BaseSolver &solver) {
 
   // Output constraints
   // SUM(x_i) <= 1 === SUM(~x_i) >= 2 * f.size() - 1
+  // for (int i = 0; i < fStar.size(); ++i) {
+  //   vector<Lit> lits;
+  //   for (int j = 0; j < f.size(); ++j) {
+  //     lits.push_back(~Lit(c[i][j].matrixVar));
+  //     lits.push_back(~Lit(d[i][j].matrixVar));
+  //   }
+  //   solver.addGte(lits, 2 * f.size() - 1);
+  // }
   for (int i = 0; i < fStar.size(); ++i) {
     vector<Lit> lits;
     for (int j = 0; j < f.size(); ++j) {
-      lits.push_back(~Lit(c[i][j].matrixVar));
-      lits.push_back(~Lit(d[i][j].matrixVar));
+      lits.push_back(Lit(c[i][j].matrixVar));
+      lits.push_back(Lit(d[i][j].matrixVar));
     }
-    solver.addGte(lits, 2 * f.size() - 1);
+    solver.addOneHot(lits);
+  }
+
+  for (int j = 0; j < f.size(); ++j) {
+    vector<Lit> lits;
+    for (int i = 0; i < fStar.size(); ++i) {
+      lits.push_back(Lit(c[i][j].matrixVar));
+      lits.push_back(Lit(d[i][j].matrixVar));
+    }
+    solver.addOneHot(lits);
   }
 
   // update score helper Var
@@ -604,8 +621,8 @@ unordered_set<Var> findRedundantInputs(BaseSolver &solver) {
 }
 
 void solve() {
-  setScoreLowerBound(pureMatrixSolver, (f.size() + g.size()) / 2);
-  setScoreLowerBound(busMatrixSolver, (f.size() + g.size()) / 2);
+  // setScoreLowerBound(pureMatrixSolver, (f.size() + g.size()) / 2);
+  // setScoreLowerBound(busMatrixSolver, (f.size() + g.size()) / 2);
 
   bestScore = 0;
   int iterations = -1;
