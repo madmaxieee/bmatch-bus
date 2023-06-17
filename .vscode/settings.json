@@ -15,8 +15,10 @@
   "cSpell.words": [
     "bmatch",
     "Cadical",
+    "CONSTGROUP",
     "Dimacs",
-    "Minisat"
+    "Minisat",
+    "OUTGROUP"
   ],
   "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools"
 }

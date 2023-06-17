@@ -28,7 +28,7 @@ public:
 
   // Constructing proof model
   // Return the Var ID of the new Var
-  inline Var newVar();
+  Var newVar();
   // fa/fb = true if it is inverted
   void addAigCNF(Var vf, Var va, bool fa, Var vb, bool fb);
   // fa/fb = true if it is inverted
@@ -37,6 +37,9 @@ public:
   void addCNF(const std::vector<Lit> &lits);
 
   void addOR(Lit f, vector<Lit> lits);
+
+  void addXOR2(Lit f, Lit a, Lit b);
+  void addAND2(Lit f, Lit a, Lit b);
 
   // commander encoding
   // ref:
@@ -54,16 +57,16 @@ public:
   void assumeRelease();
   void assumeProperty(Var prop, bool val);
   void setAssumptions(const vector<Lit> &assump);
-  inline bool assumpSolve();
+  bool assumpSolve();
 
   // For one time proof, use "solve"
-  inline void assertProperty(Var prop, bool val);
-  inline bool solve();
+  void assertProperty(Var prop, bool val);
+  bool solve();
 
   // Functions about Reporting
   // Return 1/0/-1; -1 means unknown value
-  inline int getValue(Var v);
-  inline void printStats() const;
+  int getValue(Var v);
+  void printStats() const;
 
 private:
   Solver *_solver;  // Pointer to a Minisat solver

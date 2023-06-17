@@ -11,7 +11,7 @@ $(shell mkdir -p $(BIN_DIR))
 
 all: $(BIN_DIR)/bmatch-solver
 
-$(BIN_DIR)/bmatch-solver: src/File.o src/Proof.o src/Solver.o src/main.o src/CadicalSolver.o src/MinisatSolver.o $(LIBCADICAL)
+$(BIN_DIR)/bmatch-solver: src/File.o src/Proof.o src/Solver.o src/CadicalSolver.o src/MinisatSolver.o src/main.o $(LIBCADICAL)
 	g++ $(CC_FLAGS) $(OPT_FLAGS) $^ -o $@
 
 src/%.o: src/%.cpp
@@ -31,4 +31,4 @@ test_%: $(BIN_DIR)/bmatch-solver
 	$(CASE_DIR_PREFIX)$*/input $(CASE_DIR_PREFIX)$*/match
 
 clean:
-	rm -f *.o $(BIN_DIR)/bmatch-solver
+	rm -f src/*.o $(BIN_DIR)/bmatch-solver

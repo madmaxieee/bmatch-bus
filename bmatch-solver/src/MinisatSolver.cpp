@@ -25,7 +25,7 @@ void MinisatSolver::reset() {
 
 // Constructing proof model
 // Return the Var ID of the new Var
-inline Var MinisatSolver::newVar() {
+Var MinisatSolver::newVar() {
   _solver->newVar();
   return _curVar++;
 }
@@ -98,6 +98,19 @@ void MinisatSolver::addOR(Lit f, vector<Lit> lits) { // Wish
     addCNF(innerLits);
   }
   addCNF(outerLits);
+}
+
+void MinisatSolver::addAND2(Lit f, Lit a, Lit b) {
+  addCNF({~f, a});
+  addCNF({~f, b});
+  addCNF({f, ~a, ~b});
+}
+
+void MinisatSolver::addXOR2(Lit f, Lit a, Lit b) {
+  addCNF({~f, ~a, ~b});
+  addCNF({~f, a, b});
+  addCNF({f, ~a, b});
+  addCNF({f, a, ~b});
 }
 
 // commander encoding

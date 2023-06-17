@@ -17,7 +17,7 @@ public:
   void initialize();
   void reset();
 
-  inline Var newVar();
+  Var newVar();
 
   void addCNF(const std::vector<Lit> &lits);
 
@@ -28,6 +28,9 @@ public:
   void addXorCNF(Var vf, Var va, bool fa, Var vb, bool fb);
 
   void addOR(Lit f, std::vector<Lit> lits);
+
+  void addXOR2(Lit f, Lit a, Lit b);
+  void addAND2(Lit f, Lit a, Lit b);
 
   // commander encoding
   // ref:
@@ -64,6 +67,9 @@ private:
   std::vector<std::vector<Lit>> HA3(Lit x, Lit y, Lit z, Lit carry, Lit sum);
 
   std::vector<std::vector<Lit>> HA2(Lit x, Lit y, Lit carry, Lit sum);
+
+  void add(Lit l);
+  void endClause();
 };
 
 #endif

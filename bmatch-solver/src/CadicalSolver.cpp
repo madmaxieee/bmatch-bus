@@ -17,16 +17,19 @@ void CadicalSolver::reset() {
 
 inline Var CadicalSolver::newVar() { return _curVar++; };
 
+inline void CadicalSolver::add(Lit l) { _solver->add(toDimacs(l)); }
+inline void CadicalSolver::endClause() { _solver->add(0); }
+
 void CadicalSolver::addCNF(const std::vector<Lit> &lits) {
   for (auto l : lits) {
-    _solver->add(toDimacs(l));
+    add(l);
   }
-  _solver->add(0);
+  endClause();
 }
 
 void CadicalSolver::addUnit(Lit l) {
-  _solver->add(toDimacs(l));
-  _solver->add(0);
+  add(l);
+  endClause();
 }
 
 void CadicalSolver::addAigCNF(Var vf, Var va, bool fa, Var vb, bool fb) {
@@ -48,6 +51,7 @@ void CadicalSolver::addAigCNF(Var vf, Var va, bool fa, Var vb, bool fb) {
   addCNF(lits);
   lits.clear();
 }
+
 void CadicalSolver::addXorCNF(Var vf, Var va, bool fa, Var vb, bool fb) {
   vector<Lit> lits;
   Lit lf = Lit(vf);
@@ -86,6 +90,19 @@ void CadicalSolver::addOR(Lit f, std::vector<Lit> lits) {
     addCNF(innerLits);
   }
   addCNF(outerLits);
+}
+
+void CadicalSolver::addAND2(Lit f, Lit a, Lit b) {
+  addCNF({~f, a});
+  addCNF({~f, b});
+  addCNF({f, ~a, ~b});
+}
+
+void CadicalSolver::addXOR2(Lit f, Lit a, Lit b) {
+  addCNF({~f, ~a, ~b});
+  addCNF({~f, a, b});
+  addCNF({f, ~a, b});
+  addCNF({f, a, ~b});
 }
 
 // commander encoding

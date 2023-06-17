@@ -1,3 +1,4 @@
+#include "BaseSolver.h"
 #include "CadicalSolver.h"
 #include "MinisatSolver.h"
 #include <fstream>
@@ -38,7 +39,9 @@ struct mtx2Mit {
 // Global variables
 
 // SAT Solver
-CadicalSolver pureMatrixSolver, busMatrixSolver, miterSolver;
+CadicalSolver pureMatrixSolver;
+CadicalSolver busMatrixSolver;
+CadicalSolver miterSolver;
 
 // Circuit 1
 vector<Port> x;
@@ -208,7 +211,6 @@ int getScore(BaseSolver &solver) {
       // Not sure these assertions is correct or not
       assert(solver.getValue(c[i][j].matrixVar) != -1);
       assert(solver.getValue(d[i][j].matrixVar) != -1);
-      //
 
       score += solver.getValue(c[i][j].matrixVar);
       score += solver.getValue(d[i][j].matrixVar);
@@ -421,29 +423,28 @@ void genMiterConstraint() {
   // ¬P)
   vector<Lit> lits;
   for (int i = 0; i < fStar.size(); ++i) {
-    Var p = miterSolver.newVar();
-    miterSolver.addXorCNF(p, fStar[i], false, g[i].getVar(), false);
-
-    // a <-> b+c+d+e+...+ => (¬B ∨ A) ∧ (¬C ∨ A) ∧ (¬D ∨ A) ∧ (¬E ∨ A) ∧ (¬A ∨ B
-    // ∨ C ∨ D ∨ E)
-    vector<Lit> lits2;
+    // care <-> c ∨ d
+    // (care ∨ ¬c) ∧ (care ∨ ¬d) ∧ (¬care ∨ c ∨ d)
     Var care = miterSolver.newVar();
+    vector<Lit> lits2;
     lits2.push_back(~Lit(care));
     for (int j = 0; j < f.size(); ++j) {
-      vector<Lit> lits3;
-      lits3.push_back(Lit(care));
-      lits3.push_back(~Lit(c[i][j].miterVar));
-      miterSolver.addCNF(lits3);
-      lits3[1] = ~Lit(d[i][j].miterVar);
-      miterSolver.addCNF(lits3);
       lits2.push_back(Lit(c[i][j].miterVar));
       lits2.push_back(Lit(d[i][j].miterVar));
     }
     miterSolver.addCNF(lits2);
 
+    for (int j = 0; j < f.size(); ++j) {
+      miterSolver.addCNF({Lit(care), ~Lit(c[i][j].miterVar)});
+      miterSolver.addCNF({Lit(care), ~Lit(d[i][j].miterVar)});
+    }
+
+    // p <-> fStar[i] != g[i]
+    Var p = miterSolver.newVar();
+    miterSolver.addXOR2(Lit(p), Lit(fStar[i]), Lit(g[i].getVar()));
     // q <-> care & p
     Var q = miterSolver.newVar();
-    miterSolver.addAigCNF(q, care, false, p, false);
+    miterSolver.addAND2(Lit(q), Lit(care), Lit(p));
 
     lits.push_back(Lit(q)); // q means real no match
   }
@@ -546,7 +547,6 @@ unordered_set<Var> findRedundantInputs(BaseSolver &solver) {
   // y[i] is stored at assumptions[i + x.size()]
   miter_vars.push_back(x);
   miter_vars.push_back(y);
-
   miter_vars.push_back(f);
   miter_vars.push_back(g);
   for (auto vars : miter_vars) {
@@ -784,10 +784,10 @@ void solve() {
         tempY.push_back(miterSolver.getValue(y[i].getVar()));
       }
 
-      unordered_set dontCare = findRedundantInputs(miterSolver);
+      unordered_set<Var> dontCare = findRedundantInputs(miterSolver);
 
       vector<Lit> lits;
-      for (int i = 0; i < fStar.size(); ++i) {
+      for (int i = 0; i < g.size(); ++i) {
         for (int j = 0; j < f.size(); ++j) {
           if (tempG[i] != tempF[j]) {
             lits.push_back(~Lit(c[i][j].matrixVar));

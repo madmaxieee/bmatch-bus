@@ -10,12 +10,12 @@ END
 
 INGROUP
 1 + <b1>
-2 + <y0>
+2 + <y1>
 END
 
 INGROUP
 1 + <b0>
-2 + <y1>
+2 + <y0>
 END
 
 INGROUP

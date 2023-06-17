@@ -21,6 +21,9 @@ public:
   virtual void addSumConstraint(const std::vector<Lit> &lits, int,
                                 Lit implyFrom = lit_Undef) = 0;
 
+  virtual void addXOR2(Lit f, Lit a, Lit b) = 0;
+  virtual void addAND2(Lit f, Lit a, Lit b) = 0;
+
   virtual void assumeRelease() = 0;
   virtual void assumeProperty(Var prop, bool val) = 0;
   virtual void setAssumptions(const std::vector<Lit> &lits) = 0;
