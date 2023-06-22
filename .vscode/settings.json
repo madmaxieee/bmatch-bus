@@ -10,7 +10,20 @@
     "cassert": "cpp",
     "iostream": "cpp",
     "queue": "cpp",
-    "fstream": "cpp"
+    "fstream": "cpp",
+    "iosfwd": "cpp",
+    "ostream": "cpp",
+    "algorithm": "cpp",
+    "atomic": "cpp",
+    "deque": "cpp",
+    "exception": "cpp",
+    "functional": "cpp",
+    "istream": "cpp",
+    "locale": "cpp",
+    "optional": "cpp",
+    "tuple": "cpp",
+    "unordered_map": "cpp",
+    "unordered_set": "cpp"
   },
   "cSpell.words": [
     "bmatch",

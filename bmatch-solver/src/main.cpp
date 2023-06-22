@@ -13,7 +13,7 @@ using namespace std;
 
 double START;
 
-unordered_map<int, Var> AAG2VarHashmap;
+unordered_map<int, Var> AAG2VarMap;
 unordered_map<int, Var> outputInverted;
 
 class Port {
@@ -42,8 +42,6 @@ struct Mat2Mit {
 CadicalSolver pureMatrixSolver;
 CadicalSolver busMatrixSolver;
 CadicalSolver miterSolver;
-CadicalSolver FuncSupportSolverF;
-CadicalSolver FuncSupportSolverG;
 
 // Circuit 1
 vector<Port> x;
@@ -56,6 +54,47 @@ vector<Var> fStar;
 
 // I/O Matrix
 vector<vector<Mat2Mit>> a, b, c, d;
+
+// for funcSupport
+size_t OFFSET = 0;
+// unordered_map<int, Var> AAG2VarMapFSf;
+// unordered_map<int, Var> AAG2VarMapFSg;
+CadicalSolver funcSupportSolverF;
+CadicalSolver funcSupportSolverG;
+typedef struct {
+  CadicalSolver *solver;
+  unordered_map<int, Var> AAG2Var;
+  vector<Var> input1;
+  vector<Var> output1;
+  vector<Var> input2;
+  vector<Var> output2;
+  vector<Var> control_input_equal;
+  vector<Var> control_output_diff;
+  vector<unordered_set<size_t>> output_support_set;
+  vector<unordered_set<size_t>> input_support_set;
+} FSdata;
+
+FSdata fsDataF = {&funcSupportSolverF,
+                  unordered_map<int, Var>(),
+                  vector<Var>(),
+                  vector<Var>(),
+                  vector<Var>(),
+                  vector<Var>(),
+                  vector<Var>(),
+                  vector<Var>(),
+                  vector<unordered_set<size_t>>(),
+                  vector<unordered_set<size_t>>()};
+
+FSdata fsDataG = {&funcSupportSolverG,
+                  unordered_map<int, Var>(),
+                  vector<Var>(),
+                  vector<Var>(),
+                  vector<Var>(),
+                  vector<Var>(),
+                  vector<Var>(),
+                  vector<Var>(),
+                  vector<unordered_set<size_t>>(),
+                  vector<unordered_set<size_t>>()};
 
 // Answer
 int bestScore;
@@ -71,9 +110,23 @@ Buses gBus;
 Var AAG2Var(int AAGVar, bool circuitOne) {
   if (!circuitOne)
     AAGVar = -AAGVar;
-  if (AAG2VarHashmap.find(AAGVar) == AAG2VarHashmap.end())
-    AAG2VarHashmap[AAGVar] = miterSolver.newVar();
-  return AAG2VarHashmap[AAGVar];
+  if (AAG2VarMap.find(AAGVar) == AAG2VarMap.end())
+    AAG2VarMap[AAGVar] = miterSolver.newVar();
+  return AAG2VarMap[AAGVar];
+}
+
+Var AAG2VarFS(int one_two, int AAGVar, bool offset) {
+  assert(one_two == 1 || one_two == 2);
+  assert(OFFSET > 0);
+
+  if (offset)
+    AAGVar += OFFSET;
+
+  FSdata &fsData = (one_two == 1) ? fsDataF : fsDataG;
+
+  if (fsData.AAG2Var.find(AAGVar) == fsData.AAG2Var.end())
+    fsData.AAG2Var[AAGVar] = fsData.solver->newVar();
+  return fsData.AAG2Var[AAGVar];
 }
 
 int getPortIndex(const vector<Port> &ports, const string &portName) {
@@ -95,21 +148,34 @@ void readPortMapping(ifstream &in) {
     vector<Port> &IOPorts =
         (one_two == 1 ? (IO == "input" ? x : f) : (IO == "input" ? y : g));
     Var v = AAG2Var(litInAAG / 2, (one_two == 1));
+
+    FSdata &fsData = (one_two == 1) ? fsDataF : fsDataG;
+    Var vFS1 = AAG2VarFS(one_two, litInAAG / 2, false);
+    Var vFS2 = AAG2VarFS(one_two, litInAAG / 2, true);
+    vector<Var> &IOvarsFS1 = (IO == "input" ? fsData.input1 : fsData.output1);
+    vector<Var> &IOvarsFS2 = (IO == "input" ? fsData.input2 : fsData.output2);
+
     if (litInAAG % 2 == 1) {             // inverted output
       Var invVar = miterSolver.newVar(); // invVar = ~v
-      vector<Lit> lits;
-      lits.push_back(Lit(invVar));
-      lits.push_back(Lit(v));
-      miterSolver.addCNF(lits);
-      lits.clear();
-      lits.push_back(~Lit(invVar));
-      lits.push_back(~Lit(v));
-      miterSolver.addCNF(lits);
-      v = invVar;
+      miterSolver.addCNF({Lit(invVar), Lit(v)});
+      miterSolver.addCNF({~Lit(invVar), ~Lit(v)});
       // output port will be the inverted var, and use AAG2VAR will get the
       // original one
+      v = invVar;
+
+      Var invVarFS1 = fsData.solver->newVar();
+      Var invVarFS2 = fsData.solver->newVar();
+      fsData.solver->addCNF({Lit(invVarFS1), Lit(vFS1)});
+      fsData.solver->addCNF({~Lit(invVarFS1), ~Lit(vFS1)});
+      fsData.solver->addCNF({Lit(invVarFS2), Lit(vFS2)});
+      fsData.solver->addCNF({~Lit(invVarFS2), ~Lit(vFS2)});
+      vFS1 = invVarFS1;
+      vFS2 = invVarFS2;
     }
+
     IOPorts.push_back(Port(name, v));
+    IOvarsFS1.push_back(vFS1);
+    IOvarsFS2.push_back(vFS2);
   }
   in.close();
 }
@@ -135,6 +201,18 @@ void readAAG(ifstream &in, bool circuitOne) {
     Var vb = AAG2Var(lb / 2, circuitOne);
     bool fb = lb % 2;
     miterSolver.addAigCNF(vf, va, fa, vb, fb);
+
+    Var vfFS1 = AAG2VarFS(circuitOne ? 1 : 2, lf / 2, false);
+    Var vaFS1 = AAG2VarFS(circuitOne ? 1 : 2, la / 2, false);
+    Var vbFS1 = AAG2VarFS(circuitOne ? 1 : 2, lb / 2, false);
+    Var vfFS2 = AAG2VarFS(circuitOne ? 1 : 2, lf / 2, true);
+    Var vaFS2 = AAG2VarFS(circuitOne ? 1 : 2, la / 2, true);
+    Var vbFS2 = AAG2VarFS(circuitOne ? 1 : 2, lb / 2, true);
+    bool faFS = la % 2;
+    bool fbFS = lb % 2;
+    FSdata &fsData = (circuitOne ? fsDataF : fsDataG);
+    fsData.solver->addAigCNF(vfFS1, vaFS1, faFS, vbFS1, fbFS);
+    fsData.solver->addAigCNF(vfFS2, vaFS2, faFS, vbFS2, fbFS);
   }
   in.close();
 }
@@ -222,7 +300,7 @@ int getScore(BaseSolver &solver) {
   return score;
 }
 
-void genCircuitModel(ifstream &portMapping, ifstream &aag1, ifstream &aig2) {
+void genCircuitModel(ifstream &portMapping, ifstream &aag1, ifstream &aag2) {
   x.clear();
   f.clear();
   y.clear();
@@ -232,7 +310,7 @@ void genCircuitModel(ifstream &portMapping, ifstream &aag1, ifstream &aig2) {
 
   readPortMapping(portMapping);
   readAAG(aag1, true);
-  readAAG(aig2, false);
+  readAAG(aag2, false);
 
   for (int i = 0; i < g.size(); ++i) {
     fStar.push_back(miterSolver.newVar());
@@ -575,54 +653,91 @@ unordered_set<Var> findRedundantInputs(BaseSolver &solver) {
   return dontCare;
 }
 
-void buildFuncSupportSolver() {
-  for (int i = 0; i < y.size(); ++i) {
-    for (int j = 0; j < x.size(); ++j) {
-      a[i][j].miterVar = miterSolver.newVar();
-      Lit lit_a = Lit(a[i][j].miterVar);
-      Lit lit_x = Lit(x[j].getVar());
-      Lit lit_y = Lit(y[i].getVar());
+void buildFuncSupportSolver(FSdata &fsData) {
+  BaseSolver *solver = fsData.solver;
+  vector<Var> &input1 = fsData.input1;
+  vector<Var> &input2 = fsData.input2;
+  vector<Var> &output1 = fsData.output1;
+  vector<Var> &output2 = fsData.output2;
+  vector<Var> &control_input_equal = fsData.control_input_equal;
+  vector<Var> &control_output_diff = fsData.control_output_diff;
 
-      vector<Lit> lits;
-      miterSolver.addCNF({~lit_a, lit_x, ~lit_y});
+  control_input_equal.resize(input1.size());
+  for (size_t i = 0; i < input1.size(); i++) {
+    control_input_equal[i] = solver->newVar();
+    solver->addCNF(
+        {~Lit(control_input_equal[i]), Lit(input1[i]), ~Lit(input2[i])});
+    solver->addCNF(
+        {~Lit(control_input_equal[i]), ~Lit(input1[i]), Lit(input2[i])});
+  }
 
-      lits.clear();
-      lits.push_back(~Lit(a[i][j].miterVar));
-      lits.push_back(~Lit(x[j].getVar()));
-      lits.push_back(Lit(y[i].getVar()));
-      miterSolver.addCNF(lits);
-
-      b[i][j].miterVar = miterSolver.newVar();
-      lits.clear();
-      lits.push_back(~Lit(b[i][j].miterVar));
-      lits.push_back(~Lit(x[j].getVar()));
-      lits.push_back(~Lit(y[i].getVar()));
-      miterSolver.addCNF(lits);
-
-      lits.clear();
-      lits.push_back(~Lit(b[i][j].miterVar));
-      lits.push_back(Lit(x[j].getVar()));
-      lits.push_back(Lit(y[i].getVar()));
-      miterSolver.addCNF(lits);
-    }
-    // zero constraint a[i][x.size()] -> ~y[i]
-    a[i][x.size()].miterVar = miterSolver.newVar();
-    vector<Lit> lits;
-    lits.push_back(~Lit(a[i][x.size()].miterVar));
-    lits.push_back(~Lit(y[i].getVar()));
-    miterSolver.addCNF(lits);
-
-    // one constraint b[i][x.size()] -> y[i]
-    b[i][x.size()].miterVar = miterSolver.newVar();
-    lits.clear();
-    lits.push_back(~Lit(b[i][x.size()].miterVar));
-    lits.push_back(Lit(y[i].getVar()));
-    miterSolver.addCNF(lits);
+  control_output_diff.resize(output1.size());
+  for (size_t i = 0; i < output1.size(); i++) {
+    control_output_diff[i] = solver->newVar();
+    solver->addCNF(
+        {~Lit(control_output_diff[i]), Lit(output1[i]), Lit(output2[i])});
+    solver->addCNF(
+        {~Lit(control_output_diff[i]), ~Lit(output1[i]), ~Lit(output2[i])});
   }
 }
 
-vector<Var> findFuncSupport(BaseSolver &solver, Var OutputVar) {
-  return vector<Var>();
+void findFuncSupport(FSdata &fsData) {
+  BaseSolver *solver = fsData.solver;
+  vector<Var> &input1 = fsData.input1;
+  vector<Var> &input2 = fsData.input2;
+  vector<Var> &output1 = fsData.output1;
+  vector<Var> &output2 = fsData.output2;
+  vector<Var> &control_input_equal = fsData.control_input_equal;
+  vector<Var> &control_output_diff = fsData.control_output_diff;
+  vector<unordered_set<size_t>> &output_support_set = fsData.output_support_set;
+  vector<unordered_set<size_t>> &input_support_set = fsData.input_support_set;
+
+  auto isFuncSupport = [&](size_t input_index, size_t output_index) {
+    solver->assumeRelease();
+
+    for (size_t i = 0; i < control_input_equal.size(); i++) {
+      if (i == input_index) {
+        solver->assumeProperty(control_input_equal[i], false);
+        solver->assumeProperty(input1[i], true);
+        solver->assumeProperty(input2[i], false);
+      } else {
+        solver->assumeProperty(control_input_equal[i], true);
+      }
+    }
+
+    for (size_t i = 0; i < control_output_diff.size(); i++) {
+      solver->assumeProperty(control_output_diff[i], i == output_index);
+    }
+
+    return solver->assumpSolve();
+  };
+
+  input_support_set.resize(input1.size());
+  output_support_set.resize(output1.size());
+  for (size_t i = 0; i < input1.size(); i++) {
+    for (size_t j = 0; j < output1.size(); j++) {
+      if (isFuncSupport(i, j)) {
+        output_support_set[j].insert(i);
+        input_support_set[i].insert(j);
+      }
+    }
+  }
+}
+
+void addFuncSupportConstraints() {
+  auto &gSupport = fsDataG.output_support_set;
+  auto &fSupport = fsDataF.output_support_set;
+  for (size_t i = 0; i < fStar.size(); i++) {
+    for (size_t j = 0; j < f.size(); j++) {
+      std::cout << fSupport[j].size() << " " << gSupport[i].size() << "; ";
+      if (fSupport[j].size() > gSupport[i].size()) {
+        pureMatrixSolver.addUnit(~Lit(c[i][j].matrixVar));
+        pureMatrixSolver.addUnit(~Lit(d[i][j].matrixVar));
+        busMatrixSolver.addUnit(~Lit(c[i][j].matrixVar));
+        busMatrixSolver.addUnit(~Lit(d[i][j].matrixVar));
+      }
+    }
+  }
 }
 
 void solve() {
@@ -881,9 +996,19 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  // the largest var in CNF is M * 2 + 1 which means the inverse of the last var
+  string _;
+  size_t M;
+  input >> _ >> M;
+  OFFSET = M * 2 + 2;
+  input.close();
+  input.open(argv[4]);
+
   pureMatrixSolver.initialize();
   busMatrixSolver.initialize();
   miterSolver.initialize();
+  funcSupportSolverF.initialize();
+  funcSupportSolverG.initialize();
 
   genCircuitModel(portMapping, aag1, aag2);
   readBusInfo(input, true);
@@ -893,8 +1018,13 @@ int main(int argc, char **argv) {
   buildMatrix(busMatrixSolver);
   addBusConstraints(xBus, yBus, true);
   addBusConstraints(fBus, gBus, false);
-
   genMiterConstraint();
+
+  buildFuncSupportSolver(fsDataF);
+  buildFuncSupportSolver(fsDataG);
+  findFuncSupport(fsDataF);
+  findFuncSupport(fsDataG);
+  addFuncSupportConstraints();
 
   std::cout << "Start solving..." << endl;
   solve();
