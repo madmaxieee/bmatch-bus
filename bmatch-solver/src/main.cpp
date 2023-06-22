@@ -729,7 +729,6 @@ void addFuncSupportConstraints() {
   auto &fSupport = fsDataF.output_support_set;
   for (size_t i = 0; i < fStar.size(); i++) {
     for (size_t j = 0; j < f.size(); j++) {
-      std::cout << fSupport[j].size() << " " << gSupport[i].size() << "; ";
       if (fSupport[j].size() > gSupport[i].size()) {
         pureMatrixSolver.addUnit(~Lit(c[i][j].matrixVar));
         pureMatrixSolver.addUnit(~Lit(d[i][j].matrixVar));
@@ -998,11 +997,15 @@ int main(int argc, char **argv) {
 
   // the largest var in CNF is M * 2 + 1 which means the inverse of the last var
   string _;
-  size_t M;
-  input >> _ >> M;
+  size_t M1, M2, M;
+  aag1 >> _ >> M1;
+  aag1.close();
+  aag1.open(argv[2]);
+  aag2 >> _ >> M2;
+  aag2.close();
+  aag2.open(argv[3]);
+  M = std::max(M1, M2);
   OFFSET = M * 2 + 2;
-  input.close();
-  input.open(argv[4]);
 
   pureMatrixSolver.initialize();
   busMatrixSolver.initialize();
