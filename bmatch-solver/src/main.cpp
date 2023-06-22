@@ -31,7 +31,7 @@ private:
   Var var;
 };
 
-struct mtx2Mit {
+struct Mat2Mit {
   Var matrixVar;
   Var miterVar;
 };
@@ -42,6 +42,8 @@ struct mtx2Mit {
 CadicalSolver pureMatrixSolver;
 CadicalSolver busMatrixSolver;
 CadicalSolver miterSolver;
+CadicalSolver FuncSupportSolverF;
+CadicalSolver FuncSupportSolverG;
 
 // Circuit 1
 vector<Port> x;
@@ -53,7 +55,7 @@ vector<Port> g;
 vector<Var> fStar;
 
 // I/O Matrix
-vector<vector<mtx2Mit>> a, b, c, d;
+vector<vector<Mat2Mit>> a, b, c, d;
 
 // Answer
 int bestScore;
@@ -254,8 +256,8 @@ void buildMatrix(BaseSolver &solver) {
 
   // Input matrix
   for (int i = 0; i < y.size(); ++i) {
-    vector<mtx2Mit> aTemp(x.size() + 1);
-    vector<mtx2Mit> bTemp(x.size() + 1);
+    vector<Mat2Mit> aTemp(x.size() + 1);
+    vector<Mat2Mit> bTemp(x.size() + 1);
     for (int j = 0; j < x.size(); ++j) {
       aTemp[j].matrixVar = solver.newVar();
       bTemp[j].matrixVar = solver.newVar();
@@ -268,8 +270,8 @@ void buildMatrix(BaseSolver &solver) {
 
   // Output matrix
   for (int i = 0; i < fStar.size(); ++i) {
-    vector<mtx2Mit> cTemp(f.size());
-    vector<mtx2Mit> dTemp(f.size());
+    vector<Mat2Mit> cTemp(f.size());
+    vector<Mat2Mit> dTemp(f.size());
     for (int j = 0; j < f.size(); ++j) {
       cTemp[j].matrixVar = solver.newVar();
       dTemp[j].matrixVar = solver.newVar();
@@ -304,30 +306,13 @@ void buildMatrix(BaseSolver &solver) {
 
   // Output constraints
   // SUM(x_i) <= 1 === SUM(~x_i) >= 2 * f.size() - 1
-  // for (int i = 0; i < fStar.size(); ++i) {
-  //   vector<Lit> lits;
-  //   for (int j = 0; j < f.size(); ++j) {
-  //     lits.push_back(~Lit(c[i][j].matrixVar));
-  //     lits.push_back(~Lit(d[i][j].matrixVar));
-  //   }
-  //   solver.addGte(lits, 2 * f.size() - 1);
-  // }
   for (int i = 0; i < fStar.size(); ++i) {
     vector<Lit> lits;
     for (int j = 0; j < f.size(); ++j) {
-      lits.push_back(Lit(c[i][j].matrixVar));
-      lits.push_back(Lit(d[i][j].matrixVar));
+      lits.push_back(~Lit(c[i][j].matrixVar));
+      lits.push_back(~Lit(d[i][j].matrixVar));
     }
-    solver.addOneHot(lits);
-  }
-
-  for (int j = 0; j < f.size(); ++j) {
-    vector<Lit> lits;
-    for (int i = 0; i < fStar.size(); ++i) {
-      lits.push_back(Lit(c[i][j].matrixVar));
-      lits.push_back(Lit(d[i][j].matrixVar));
-    }
-    solver.addOneHot(lits);
+    solver.addGte(lits, 2 * f.size() - 1);
   }
 
   // update score helper Var
@@ -364,74 +349,44 @@ void genMiterConstraint() {
   for (int i = 0; i < y.size(); ++i) {
     for (int j = 0; j < x.size(); ++j) {
       a[i][j].miterVar = miterSolver.newVar();
-      vector<Lit> lits;
-      lits.push_back(~Lit(a[i][j].miterVar));
-      lits.push_back(Lit(x[j].getVar()));
-      lits.push_back(~Lit(y[i].getVar()));
-      miterSolver.addCNF(lits);
-
-      lits.clear();
-      lits.push_back(~Lit(a[i][j].miterVar));
-      lits.push_back(~Lit(x[j].getVar()));
-      lits.push_back(Lit(y[i].getVar()));
-      miterSolver.addCNF(lits);
-
       b[i][j].miterVar = miterSolver.newVar();
-      lits.clear();
-      lits.push_back(~Lit(b[i][j].miterVar));
-      lits.push_back(~Lit(x[j].getVar()));
-      lits.push_back(~Lit(y[i].getVar()));
-      miterSolver.addCNF(lits);
 
-      lits.clear();
-      lits.push_back(~Lit(b[i][j].miterVar));
-      lits.push_back(Lit(x[j].getVar()));
-      lits.push_back(Lit(y[i].getVar()));
-      miterSolver.addCNF(lits);
+      Lit lit_a = Lit(a[i][j].miterVar);
+      Lit lit_b = Lit(b[i][j].miterVar);
+      Lit lit_x = Lit(x[j].getVar());
+      Lit lit_y = Lit(y[i].getVar());
+
+      miterSolver.addCNF({~lit_a, lit_x, ~lit_y});
+      miterSolver.addCNF({~lit_a, ~lit_x, lit_y});
+
+      miterSolver.addCNF({~lit_b, ~lit_x, ~lit_y});
+      miterSolver.addCNF({~lit_b, lit_x, lit_y});
     }
     // zero constraint a[i][x.size()] -> ~y[i]
     a[i][x.size()].miterVar = miterSolver.newVar();
-    vector<Lit> lits;
-    lits.push_back(~Lit(a[i][x.size()].miterVar));
-    lits.push_back(~Lit(y[i].getVar()));
-    miterSolver.addCNF(lits);
+    miterSolver.addCNF({~Lit(a[i][x.size()].miterVar), ~Lit(y[i].getVar())});
 
     // one constraint b[i][x.size()] -> y[i]
     b[i][x.size()].miterVar = miterSolver.newVar();
-    lits.clear();
-    lits.push_back(~Lit(b[i][x.size()].miterVar));
-    lits.push_back(Lit(y[i].getVar()));
-    miterSolver.addCNF(lits);
+    miterSolver.addCNF({~Lit(b[i][x.size()].miterVar), Lit(y[i].getVar())});
   }
 
   // Output constraints
   for (int i = 0; i < fStar.size(); ++i) {
     for (int j = 0; j < f.size(); ++j) {
       c[i][j].miterVar = miterSolver.newVar();
-      vector<Lit> lits;
-      lits.push_back(~Lit(c[i][j].miterVar));
-      lits.push_back(Lit(fStar[i]));
-      lits.push_back(~Lit(f[j].getVar()));
-      miterSolver.addCNF(lits);
-
-      lits.clear();
-      lits.push_back(~Lit(c[i][j].miterVar));
-      lits.push_back(~Lit(fStar[i]));
-      lits.push_back(Lit(f[j].getVar()));
-      miterSolver.addCNF(lits);
-
       d[i][j].miterVar = miterSolver.newVar();
-      lits.clear();
-      lits.push_back(~Lit(d[i][j].miterVar));
-      lits.push_back(~Lit(fStar[i]));
-      lits.push_back(~Lit(f[j].getVar()));
-      miterSolver.addCNF(lits);
 
-      lits.clear();
-      lits.push_back(~Lit(d[i][j].miterVar));
-      lits.push_back(Lit(fStar[i]));
-      lits.push_back(Lit(f[j].getVar()));
-      miterSolver.addCNF(lits);
+      Lit lit_c = Lit(c[i][j].miterVar);
+      Lit lit_d = Lit(d[i][j].miterVar);
+      Lit lit_f = Lit(f[j].getVar());
+      Lit lit_fStar = Lit(fStar[i]);
+
+      miterSolver.addCNF({~lit_c, lit_fStar, ~lit_f});
+      miterSolver.addCNF({~lit_c, ~lit_fStar, lit_f});
+
+      miterSolver.addCNF({~lit_d, ~lit_fStar, ~lit_f});
+      miterSolver.addCNF({~lit_d, lit_fStar, lit_f});
     }
   }
 
@@ -573,7 +528,7 @@ unordered_set<Var> findRedundantInputs(BaseSolver &solver) {
     }
   }
 
-  auto mat_vars = vector<vector<vector<mtx2Mit>>>();
+  auto mat_vars = vector<vector<vector<Mat2Mit>>>();
   mat_vars.push_back(a);
   mat_vars.push_back(b);
   mat_vars.push_back(c);
@@ -618,6 +573,56 @@ unordered_set<Var> findRedundantInputs(BaseSolver &solver) {
   solver.assumeRelease();
 
   return dontCare;
+}
+
+void buildFuncSupportSolver() {
+  for (int i = 0; i < y.size(); ++i) {
+    for (int j = 0; j < x.size(); ++j) {
+      a[i][j].miterVar = miterSolver.newVar();
+      Lit lit_a = Lit(a[i][j].miterVar);
+      Lit lit_x = Lit(x[j].getVar());
+      Lit lit_y = Lit(y[i].getVar());
+
+      vector<Lit> lits;
+      miterSolver.addCNF({~lit_a, lit_x, ~lit_y});
+
+      lits.clear();
+      lits.push_back(~Lit(a[i][j].miterVar));
+      lits.push_back(~Lit(x[j].getVar()));
+      lits.push_back(Lit(y[i].getVar()));
+      miterSolver.addCNF(lits);
+
+      b[i][j].miterVar = miterSolver.newVar();
+      lits.clear();
+      lits.push_back(~Lit(b[i][j].miterVar));
+      lits.push_back(~Lit(x[j].getVar()));
+      lits.push_back(~Lit(y[i].getVar()));
+      miterSolver.addCNF(lits);
+
+      lits.clear();
+      lits.push_back(~Lit(b[i][j].miterVar));
+      lits.push_back(Lit(x[j].getVar()));
+      lits.push_back(Lit(y[i].getVar()));
+      miterSolver.addCNF(lits);
+    }
+    // zero constraint a[i][x.size()] -> ~y[i]
+    a[i][x.size()].miterVar = miterSolver.newVar();
+    vector<Lit> lits;
+    lits.push_back(~Lit(a[i][x.size()].miterVar));
+    lits.push_back(~Lit(y[i].getVar()));
+    miterSolver.addCNF(lits);
+
+    // one constraint b[i][x.size()] -> y[i]
+    b[i][x.size()].miterVar = miterSolver.newVar();
+    lits.clear();
+    lits.push_back(~Lit(b[i][x.size()].miterVar));
+    lits.push_back(Lit(y[i].getVar()));
+    miterSolver.addCNF(lits);
+  }
+}
+
+vector<Var> findFuncSupport(BaseSolver &solver, Var OutputVar) {
+  return vector<Var>();
 }
 
 void solve() {
