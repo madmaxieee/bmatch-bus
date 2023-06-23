@@ -762,8 +762,9 @@ void solve() {
     shouldLog = execTime + reportInterval <= (clock() - START) / CLOCKS_PER_SEC;
 
     if (shouldLog) {
-      std::cout << "\r" << std::setw(6) << iterations << " iterations in"
-                << std::setw(5) << execTime << " s | " << std::setw(4)
+      std::cout << "\r" << std::setw(6) << iterations << " iterations in "
+                << std::setw(5) << execTime << " s | " << std::setw(6)
+                << std::setprecision(2) << std::fixed
                 << ((float)iterations / (execTime + reportInterval))
                 << " its/s | " << std::flush;
       execTime = (clock() - START) / CLOCKS_PER_SEC;
@@ -996,16 +997,18 @@ int main(int argc, char **argv) {
   }
 
   // the largest var in CNF is M * 2 + 1 which means the inverse of the last var
-  string _;
-  size_t M1, M2, M;
-  aag1 >> _ >> M1;
-  aag1.close();
-  aag1.open(argv[2]);
-  aag2 >> _ >> M2;
-  aag2.close();
-  aag2.open(argv[3]);
-  M = std::max(M1, M2);
-  OFFSET = M * 2 + 2;
+  {
+    string _;
+    size_t M1, M2, M;
+    aag1 >> _ >> M1;
+    aag1.close();
+    aag1.open(argv[2]);
+    aag2 >> _ >> M2;
+    aag2.close();
+    aag2.open(argv[3]);
+    M = std::max(M1, M2);
+    OFFSET = M * 2 + 2;
+  }
 
   pureMatrixSolver.initialize();
   busMatrixSolver.initialize();
